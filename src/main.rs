@@ -38,7 +38,7 @@ enum State {
     /// Turn the cars direction by doing consecutive front and back movements
     /// until the angle between the cars orientation and the target converges to be under
     /// a specified threshold
-    Turning,
+    Turning(Angle),
     /// Approach the car by doing incremental actions of approaching and measuring interleaved.
     /// So we approach the target a bit, measure if we decreased the distance, if yes repeat, if no
     /// then calibrate. We do this until we hit the target.
@@ -56,8 +56,8 @@ impl State {
         wheels: &mut WheelOrientation,
     ) -> eyre::Result<()> {
         match self {
-            State::Turning => loop {
-                unimplemented!()
+            State::Turning(angle) => loop {
+                wheels.set(angle.to_owned());
             },
             State::Approaching => {
                 let hint = cheats::approaching::auto(
@@ -73,7 +73,7 @@ impl State {
 
                 *self = match hint {
                     Hint::TargetWasHit => Self::Idle,
-                    Hint::OrientationIsOff => Self::Turning,
+                    Hint::OrientationIsOff(turn) => Self::Turning(turn),
                 };
             }
             State::Idle => {
@@ -88,7 +88,7 @@ impl State {
                 )
                 .await?;
 
-                *self = Self::Turning;
+                *self = Self::Turning(Angle::straight());
             }
         }
 

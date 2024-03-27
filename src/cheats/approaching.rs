@@ -4,14 +4,14 @@ use hs_hackathon::car::{Angle, MotorSocket, Velocity, WheelOrientation};
 use hs_hackathon::drone::Camera;
 use hs_hackathon::prelude::eyre;
 
-use crate::cheats::positioning::distance;
+use crate::cheats::positioning::{distance, Position};
 
 use super::TeamColors;
 
 /// A hint given to you by the approach cheat
 pub enum Hint {
     /// Indicates that we are not on track anymore and we should repair the orientation
-    OrientationIsOff,
+    OrientationIsOff(Angle),
     /// Indicates that the target was hit and we are in reasonable proximity
     TargetWasHit,
 }
@@ -50,7 +50,15 @@ pub async fn auto(
 
         // 2. if we were closer before approaching or didnt move, calibrate
         if pre <= current {
-            return Ok(Hint::OrientationIsOff);
+            let car_pos = Position::from(currentcar.to_owned());
+            let targ_pos = Position::from(currenttarget.to_owned());
+            let angle = car_pos.angle(&targ_pos);
+            let angle = if angle > 0.0 {
+                Angle::right()
+            } else {
+                Angle::left()
+            };
+            return Ok(Hint::OrientationIsOff(angle));
         }
 
         // 3. continue with approaching
